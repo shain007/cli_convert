@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="CLI 변환기">
+<meta name="theme-color" content="#0f172a">
+<title>CLI 명령어 변환기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Pretendard:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface2: #273348;
+  --border: #334155;
+  --accent: #38bdf8;
+  --accent2: #0ea5e9;
+  --text: #f1f5f9;
+  --text2: #94a3b8;
+  --text3: #64748b;
+  --success: #34d399;
+  --warn: #fbbf24;
+  --danger: #f87171;
+  --hp: #60a5fa;
+  --pio: #a78bfa;
+  --han: #34d399;
+  --radius: 12px;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'Pretendard', -apple-system, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+
+.app { max-width: 480px; margin: 0 auto; padding: 0 0 80px; }
+
+/* 헤더 */
+.header {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+.logo {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent2), #818cf8);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.header-text h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; }
+.header-text p { font-size: 12px; color: var(--text3); margin-top: 2px; font-family: var(--mono); }
+
+/* 탭 */
+.tabs {
+  display: flex; gap: 0;
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  padding: 12px 16px; font-size: 13px; font-weight: 500;
+  color: var(--text3); border-bottom: 2px solid transparent;
+  cursor: pointer; white-space: nowrap; transition: all 0.15s;
+  background: none; border-top: none; border-left: none; border-right: none;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* 패널 */
+.panel { display: none; padding: 20px; }
+.panel.active { display: block; }
+
+/* 입력 */
+.label { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+textarea {
+  width: 100%; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); color: var(--text); font-family: var(--mono);
+  font-size: 13px; padding: 12px 14px; resize: none; min-height: 120px;
+  line-height: 1.6; outline: none; transition: border-color 0.15s;
+}
+textarea:focus { border-color: var(--accent2); }
+textarea::placeholder { color: var(--text3); }
+
+/* 벤더 선택 */
+.vendor-wrap { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 14px 0; }
+.vendor-all { grid-column: 1 / -1; }
+.vendor-btn {
+  padding: 10px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text2); font-size: 13px;
+  font-weight: 500; cursor: pointer; text-align: center; transition: all 0.15s;
+  font-family: var(--sans);
+}
+.vendor-btn:active { transform: scale(0.97); }
+.vendor-btn.active-all { border-color: var(--accent); color: var(--accent); background: rgba(56,189,248,0.08); }
+.vendor-btn.active-hp  { border-color: var(--hp); color: var(--hp); background: rgba(96,165,250,0.08); }
+.vendor-btn.active-pio { border-color: var(--pio); color: var(--pio); background: rgba(167,139,250,0.08); }
+.vendor-btn.active-han { border-color: var(--han); color: var(--han); background: rgba(52,211,153,0.08); }
+
+/* 변환 버튼 */
+.convert-btn {
+  width: 100%; padding: 14px; border-radius: var(--radius);
+  background: var(--accent2); border: none; color: #fff;
+  font-size: 15px; font-weight: 600; cursor: pointer;
+  font-family: var(--sans); letter-spacing: -0.2px; transition: all 0.15s;
+}
+.convert-btn:active { transform: scale(0.98); background: #0284c7; }
+
+/* 결과 */
+.result-area { margin-top: 20px; }
+.result-empty { text-align: center; padding: 40px 20px; color: var(--text3); font-size: 14px; }
+.result-empty .icon { font-size: 32px; margin-bottom: 8px; }
+
+.result-item { margin-bottom: 16px; }
+.cisco-src {
+  font-family: var(--mono); font-size: 11px; color: var(--text3);
+  padding: 6px 10px; background: var(--surface2); border-radius: 6px 6px 0 0;
+  border: 1px solid var(--border); border-bottom: none;
+}
+.vendor-result { border: 1px solid var(--border); border-radius: 0 0 var(--radius) var(--radius); overflow: hidden; }
+.vendor-row { padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 10px; }
+.vendor-row:last-child { border-bottom: none; }
+.vendor-tag { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; padding: 2px 7px; border-radius: 4px; flex-shrink: 0; margin-top: 1px; }
+.tag-hp  { background: rgba(96,165,250,0.15); color: var(--hp); }
+.tag-pio { background: rgba(167,139,250,0.15); color: var(--pio); }
+.tag-han { background: rgba(52,211,153,0.15); color: var(--han); }
+.cmd-text { font-family: var(--mono); font-size: 13px; color: var(--text); flex: 1; line-height: 1.5; word-break: break-all; }
+.unmapped-row { padding: 10px 12px; }
+.unmapped-text { font-family: var(--mono); font-size: 12px; color: var(--danger); }
+.note-row { padding: 6px 12px; background: rgba(251,191,36,0.06); border-top: 1px solid rgba(251,191,36,0.2); }
+.note-text { font-size: 11px; color: var(--warn); line-height: 1.5; }
+
+/* 단일 벤더 결과 */
+.single-result { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.single-row { display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.single-row:last-child { border-bottom: none; }
+.arrow { color: var(--text3); font-size: 12px; flex-shrink: 0; margin-top: 2px; }
+.src-cmd { font-family: var(--mono); font-size: 12px; color: var(--text3); }
+.dst-cmd { font-family: var(--mono); font-size: 13px; color: var(--text); font-weight: 500; }
+.pair { flex: 1; }
+
+/* 복사 버튼 */
+.copy-btn {
+  width: 100%; margin-top: 12px; padding: 11px;
+  border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--surface); color: var(--text2); font-size: 13px;
+  font-weight: 500; cursor: pointer; font-family: var(--sans); transition: all 0.15s;
+}
+.copy-btn:active { transform: scale(0.98); }
+.copy-btn.copied { border-color: var(--success); color: var(--success); background: rgba(52,211,153,0.08); }
+
+/* 도움말 탭 */
+.help-section { margin-bottom: 20px; }
+.help-title { font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 10px; }
+.help-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.help-table th { text-align: left; padding: 8px 10px; background: var(--surface2); color: var(--text3); font-weight: 600; font-size: 11px; letter-spacing: 0.05em; }
+.help-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 12px; vertical-align: top; }
+.help-table td:first-child { color: var(--text2); }
+.help-table td.hp-c  { color: var(--hp); }
+.help-table td.pio-c { color: var(--pio); }
+.help-table td.han-c { color: var(--han); }
+.chip { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+.chip-hp  { background: rgba(96,165,250,0.15); color: var(--hp); }
+.chip-pio { background: rgba(167,139,250,0.15); color: var(--pio); }
+.chip-han { background: rgba(52,211,153,0.15); color: var(--han); }
+
+/* 하단 네비 */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--surface); border-top: 1px solid var(--border);
+  display: flex; max-width: 480px; margin: 0 auto;
+}
+.nav-btn {
+  flex: 1; padding: 10px 8px 12px; text-align: center;
+  background: none; border: none; cursor: pointer; color: var(--text3);
+  font-family: var(--sans); transition: color 0.15s;
+}
+.nav-btn .nav-icon { font-size: 20px; display: block; }
+.nav-btn .nav-label { font-size: 10px; margin-top: 2px; display: block; font-weight: 500; }
+.nav-btn.active { color: var(--accent); }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="logo">⇄</div>
+    <div class="header-text">
+      <h1>CLI 명령어 변환기</h1>
+      <p>Cisco → HP / Piolink / Handreamnet</p>
+    </div>
+  </div>
+
+  <!-- 변환 패널 -->
+  <div class="panel active" id="panel-convert">
+    <div class="label">Cisco 명령어 입력</div>
+    <textarea id="inputCmd" placeholder="예) show version&#10;show ip route&#10;write memory&#10;&#10;여러 줄 동시 입력 가능"></textarea>
+
+    <div style="margin-top:14px;" class="label">변환 대상</div>
+    <div class="vendor-wrap">
+      <button class="vendor-btn vendor-all active-all" data-v="all" onclick="selectVendor(this)">전체 비교</button>
+      <button class="vendor-btn" data-v="hp"          onclick="selectVendor(this)">HP</button>
+      <button class="vendor-btn" data-v="piolink"     onclick="selectVendor(this)">파이오링크</button>
+      <button class="vendor-btn" data-v="handreamnet" onclick="selectVendor(this)">한드림넷</button>
+    </div>
+
+    <button class="convert-btn" onclick="doConvert()">변환하기</button>
+
+    <div class="result-area" id="resultArea">
+      <div class="result-empty"><div class="icon">⇄</div>명령어를 입력하고 변환하기를 누르세요</div>
+    </div>
+    <button class="copy-btn" id="copyBtn" onclick="copyResult()" style="display:none">결과 복사하기</button>
+  </div>
+
+  <!-- 도움말 패널 -->
+  <div class="panel" id="panel-help">
+    <div class="help-section">
+      <div class="help-title">시스템 명령어</div>
+      <table class="help-table">
+        <tr><th>Cisco</th><th><span class="chip chip-hp">HP</span></th><th><span class="chip chip-pio">파이오링크</span></th><th><span class="chip chip-han">한드림넷</span></th></tr>
+        <tr><td>show version</td><td class="hp-c">display version</td><td class="pio-c">show version</td><td class="han-c">show version</td></tr>
+        <tr><td>show cpu</td><td class="hp-c">dis cpu</td><td class="pio-c">show resource</td><td class="han-c">show system cpu-load</td></tr>
+        <tr><td>show memory</td><td class="hp-c">dis mem</td><td class="pio-c">show resource</td><td class="han-c">show system memory</td></tr>
+        <tr><td>show uptime</td><td class="hp-c">display version</td><td class="pio-c">show uptime</td><td class="han-c">show system uptime</td></tr>
+        <tr><td>show clock</td><td class="hp-c">dis clock</td><td class="pio-c">show clock</td><td class="han-c">show clock</td></tr>
+        <tr><td>show log</td><td class="hp-c">dis logbuffer reverse</td><td class="pio-c">show log all</td><td class="han-c">show syslog desc</td></tr>
+        <tr><td>show running-config</td><td class="hp-c">display current-configuration</td><td class="pio-c">show running-config</td><td class="han-c">show run</td></tr>
+        <tr><td>write memory</td><td class="hp-c">save force</td><td class="pio-c">write memory</td><td class="han-c">write memory</td></tr>
+      </table>
+    </div>
+    <div class="help-section">
+      <div class="help-title">인터페이스 / VLAN</div>
+      <table class="help-table">
+        <tr><th>Cisco</th><th><span class="chip chip-hp">HP</span></th><th><span class="chip chip-pio">파이오링크</span></th><th><span class="chip chip-han">한드림넷</span></th></tr>
+        <tr><td>show interface</td><td class="hp-c">display interface</td><td class="pio-c">show interface</td><td class="han-c">show interface</td></tr>
+        <tr><td>show ip interface brief</td><td class="hp-c">display ip interface brief</td><td class="pio-c">show ip interface brief</td><td class="han-c">show ip interface brief</td></tr>
+        <tr><td>show port status</td><td class="hp-c">display interface brief</td><td class="pio-c">show portstatus</td><td class="han-c">show port status</td></tr>
+        <tr><td>show vlan</td><td class="hp-c">display vlan all</td><td class="pio-c">show vlan</td><td class="han-c">show vlan brief</td></tr>
+        <tr><td>switchport mode trunk</td><td class="hp-c">port link-type trunk</td><td class="pio-c">switchport mode trunk</td><td class="han-c">switchport mode trunk</td></tr>
+        <tr><td>switchport mode access</td><td class="hp-c">port link-type access</td><td class="pio-c">switchport mode access</td><td class="han-c">switchport mode access</td></tr>
+        <tr><td>no shutdown</td><td class="hp-c">undo shutdown</td><td class="pio-c">no shutdown</td><td class="han-c">no shutdown</td></tr>
+      </table>
+    </div>
+    <div class="help-section">
+      <div class="help-title">라우팅 / ARP / MAC</div>
+      <table class="help-table">
+        <tr><th>Cisco</th><th><span class="chip chip-hp">HP</span></th><th><span class="chip chip-pio">파이오링크</span></th><th><span class="chip chip-han">한드림넷</span></th></tr>
+        <tr><td>show ip route</td><td class="hp-c">display ip routing-table</td><td class="pio-c">show ip route</td><td class="han-c">show ip route</td></tr>
+        <tr><td>show arp</td><td class="hp-c">display arp</td><td class="pio-c">show arp</td><td class="han-c">show ip arp</td></tr>
+        <tr><td>show mac-address table</td><td class="hp-c">display mac-address</td><td class="pio-c">show mac-table</td><td class="han-c">show mac-table</td></tr>
+        <tr><td>show spanning-tree</td><td class="hp-c">display stp brief</td><td class="pio-c">show spanning-tree</td><td class="han-c">show spanning-tree PVSTP</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 하단 네비 -->
+<div class="bottom-nav">
+  <button class="nav-btn active" id="nav-convert" onclick="switchPage('convert')">
+    <span class="nav-icon">⇄</span>
+    <span class="nav-label">변환</span>
+  </button>
+  <button class="nav-btn" id="nav-help" onclick="switchPage('help')">
+    <span class="nav-icon">📋</span>
+    <span class="nav-label">명령어표</span>
+  </button>
+</div>
+
+<script>
+const VENDORS = ['hp','piolink','handreamnet'];
+const VKR = {hp:'HP', piolink:'파이오링크', handreamnet:'한드림넷'};
+const VTAG = {hp:'tag-hp', piolink:'tag-pio', handreamnet:'tag-han'};
+
+const RULES = [
+  {re:/^hostname\s+(\S+)$/i, hp:m=>`sysname ${m[1]}`, piolink:m=>`hostname ${m[1]}`, handreamnet:m=>`hostname ${m[1]}`},
+  {re:/^show\s+version$/i, hp:_=>'display version', piolink:_=>'show version', handreamnet:_=>'show version'},
+  {re:/^show\s+running[-\s]?config$/i, hp:_=>'display current-configuration', piolink:_=>'show running-config', handreamnet:_=>'show run'},
+  {re:/^show\s+(processes\s+)?cpu$/i, hp:_=>'dis cpu', piolink:_=>'show resource', handreamnet:_=>'show system cpu-load'},
+  {re:/^show\s+(processes\s+)?memory$/i, hp:_=>'dis mem', piolink:_=>'show resource', handreamnet:_=>'show system memory'},
+  {re:/^show\s+uptime$/i, hp:_=>'display version', piolink:_=>'show uptime', handreamnet:_=>'show system uptime'},
+  {re:/^show\s+clock$/i, hp:_=>'dis clock', piolink:_=>'show clock', handreamnet:_=>'show clock'},
+  {re:/^show\s+(environment\s+)?fan$/i, hp:_=>'dis fan', piolink:_=>'show hardware-status', handreamnet:_=>'show system fan'},
+  {re:/^show\s+(environment\s+)?power$/i, hp:_=>'dis power', piolink:_=>'show hardware-status', handreamnet:_=>'show system system-info'},
+  {re:/^show\s+(environment\s+)?temp(erature)?$/i, hp:_=>'dis env', piolink:_=>'show hardware-status', handreamnet:_=>'show system temperature'},
+  {re:/^show\s+log(ging)?(\s+all)?$/i, hp:_=>'dis logbuffer reverse', piolink:_=>'show log all', handreamnet:_=>'show syslog desc'},
+  {re:/^show\s+ntp(\s+\S+)?$/i, hp:_=>'display ntp-service status', piolink:_=>'show ntp', handreamnet:_=>'show ntp'},
+  {re:/^show\s+ip\s+interface\s+brief$/i, hp:_=>'display ip interface brief', piolink:_=>'show ip interface brief', handreamnet:_=>'show ip interface brief'},
+  {re:/^show\s+interfaces?$/i, hp:_=>'display interface', piolink:_=>'show interface', handreamnet:_=>'show interface'},
+  {re:/^show\s+interfaces?\s+\|\s+in\s+CRC$/i, hp:_=>'display interface | in CRC', piolink:_=>'show interface | in CRC', handreamnet:_=>'show interface stat | inc Error'},
+  {re:/^show\s+interfaces?\s+\|\s+in\s+error$/i, hp:_=>'display interface | in %', piolink:_=>'show interface | in error', handreamnet:_=>'show interface stat | inc Error'},
+  {re:/^show\s+port\s+status$/i, hp:_=>'display interface brief', piolink:_=>'show portstatus', handreamnet:_=>'show port status'},
+  {re:/^show\s+bandwidth$/i, hp:_=>'display counters rate inbound interface\ndisplay counters rate outbound interface', piolink:_=>'show port statistics', handreamnet:_=>'show bandwidth'},
+  {re:/^interface\s+GigabitEthernet(\d+\/\d+(?:\/\d+)?)$/i, hp:m=>`interface GigabitEthernet ${m[1]}`, piolink:m=>`interface gigabit-ethernet ${m[1]}`, handreamnet:m=>`interface gigabitethernet ${m[1]}`, note:'인터페이스 명칭은 플랫폼마다 상이합니다.'},
+  {re:/^description\s+(.+)$/i, hp:m=>`description ${m[1]}`, piolink:m=>`description ${m[1]}`, handreamnet:m=>`description ${m[1]}`},
+  {re:/^shutdown$/i, hp:_=>'shutdown', piolink:_=>'shutdown', handreamnet:_=>'shutdown'},
+  {re:/^no\s+shutdown$/i, hp:_=>'undo shutdown', piolink:_=>'no shutdown', handreamnet:_=>'no shutdown'},
+  {re:/^vlan\s+(\d+)$/i, hp:m=>`vlan ${m[1]}`, piolink:m=>`vlan ${m[1]}`, handreamnet:m=>`vlan ${m[1]}`},
+  {re:/^name\s+(.+)$/i, hp:m=>`name ${m[1]}`, piolink:m=>`name ${m[1]}`, handreamnet:m=>`name ${m[1]}`},
+  {re:/^show\s+vlan(\s+brief)?$/i, hp:_=>'display vlan all', piolink:_=>'show vlan', handreamnet:_=>'show vlan brief'},
+  {re:/^switchport\s+mode\s+access$/i, hp:_=>'port link-type access', piolink:_=>'switchport mode access', handreamnet:_=>'switchport mode access'},
+  {re:/^switchport\s+mode\s+trunk$/i, hp:_=>'port link-type trunk', piolink:_=>'switchport mode trunk', handreamnet:_=>'switchport mode trunk'},
+  {re:/^switchport\s+access\s+vlan\s+(\d+)$/i, hp:m=>`port access vlan ${m[1]}`, piolink:m=>`switchport access vlan ${m[1]}`, handreamnet:m=>`switchport access vlan ${m[1]}`},
+  {re:/^switchport\s+trunk\s+allowed\s+vlan\s+([\d,\-]+)$/i, hp:m=>`port trunk permit vlan ${m[1]}`, piolink:m=>`switchport trunk allowed vlan ${m[1]}`, handreamnet:m=>`switchport trunk allowed vlan ${m[1]}`},
+  {re:/^ip\s+default-gateway\s+(\S+)$/i, hp:m=>`ip route-static 0.0.0.0 0.0.0.0 ${m[1]}`, piolink:m=>`ip route 0.0.0.0/0 ${m[1]}`, handreamnet:m=>`ip default-gateway ${m[1]}`},
+  {re:/^ip\s+route\s+(\S+)\s+(\S+)\s+(\S+)$/i, hp:m=>`ip route-static ${m[1]} ${m[2]} ${m[3]}`, piolink:m=>`ip route ${m[1]}/${mtp(m[2])} ${m[3]}`, handreamnet:m=>`ip route ${m[1]}/${mtp(m[2])} ${m[3]}`, note:'정적 경로 문법은 OS 버전마다 다를 수 있습니다.'},
+  {re:/^show\s+ip\s+route$/i, hp:_=>'display ip routing-table', piolink:_=>'show ip route', handreamnet:_=>'show ip route'},
+  {re:/^show\s+(ip\s+)?arp$/i, hp:_=>'display arp', piolink:_=>'show arp', handreamnet:_=>'show ip arp'},
+  {re:/^show\s+mac[-\s]?(address[-\s]?table)?$/i, hp:_=>'display mac-address', piolink:_=>'show mac-table', handreamnet:_=>'show mac-table'},
+  {re:/^show\s+spanning-tree(\s+\S+)?$/i, hp:_=>'display stp brief', piolink:_=>'show spanning-tree', handreamnet:_=>'show spanning-tree PVSTP'},
+  {re:/^show\s+storm-control$/i, hp:_=>'display storm-suppression', piolink:_=>'show storm-control', handreamnet:_=>'show bandwidth'},
+  {re:/^(write\s+memory|copy\s+running-config\s+startup-config)$/i, hp:_=>'save force', piolink:_=>'write memory', handreamnet:_=>'write memory'},
+];
+
+function mtp(mask) {
+  const p = mask.split('.').map(Number);
+  if(p.length!==4) return mask;
+  let b=0; for(const x of p){let v=x;for(let i=7;i>=0;i--){if(v>>i&1)b++;else break;}} return String(b);
+}
+
+function convertLine(cmd) {
+  const s = cmd.trim();
+  if(!s||s.startsWith('!')||s.startsWith('#')) return null;
+  for(const rule of RULES){
+    const m=s.match(rule.re);
+    if(m) return {src:s, hp:rule.hp(m), piolink:rule.piolink(m), handreamnet:rule.handreamnet(m), note:rule.note||''};
+  }
+  return {src:s, unmapped:true};
+}
+
+let selectedVendor='all', lastPlain='';
+
+function selectVendor(el) {
+  document.querySelectorAll('.vendor-btn').forEach(b=>{
+    b.className='vendor-btn'+(b.dataset.v==='all'?' vendor-all':'');
+  });
+  const v=el.dataset.v;
+  el.classList.add('active-'+v);
+  selectedVendor=v;
+}
+
+function doConvert() {
+  const lines = document.getElementById('inputCmd').value.split('\n');
+  const area = document.getElementById('resultArea');
+  const copyBtn = document.getElementById('copyBtn');
+  let html='', plain='', hasResult=false;
+
+  for(const line of lines) {
+    if(!line.trim()) continue;
+    const r = convertLine(line);
+    if(!r) continue;
+    hasResult=true;
+
+    if(r.unmapped) {
+      html+=`<div class="result-item"><div class="cisco-src">${esc(r.src)}</div><div class="vendor-result"><div class="unmapped-row"><div class="unmapped-text"># 미등록 명령어</div></div></div></div>`;
+      plain+=`# UNMAPPED: ${r.src}\n`;
+      continue;
+    }
+
+    if(selectedVendor==='all') {
+      let rows='';
+      for(const v of VENDORS){
+        const cmd=r[v];
+        rows+=`<div class="vendor-row"><span class="vendor-tag ${VTAG[v]}">${VKR[v]}</span><span class="cmd-text">${esc(cmd).replace(/\n/g,'<br>')}</span></div>`;
+        plain+=`[${VKR[v]}] ${cmd}\n`;
+      }
+      const note=r.note?`<div class="note-row"><div class="note-text">※ ${r.note}</div></div>`:'';
+      html+=`<div class="result-item"><div class="cisco-src">Cisco: ${esc(r.src)}</div><div class="vendor-result">${rows}${note}</div></div>`;
+      plain+='\n';
+    } else {
+      const cmd=r[selectedVendor];
+      html+=`<div class="result-item"><div class="cisco-src">${esc(r.src)}</div><div class="vendor-result"><div class="vendor-row"><span class="vendor-tag ${VTAG[selectedVendor]}">${VKR[selectedVendor]}</span><span class="cmd-text">${esc(cmd).replace(/\n/g,'<br>')}</span></div>${r.note?`<div class="note-row"><div class="note-text">※ ${r.note}</div></div>`:''}</div></div>`;
+      plain+=cmd+'\n';
+    }
+  }
+
+  area.innerHTML = hasResult ? html : '<div class="result-empty"><div class="icon">⚠️</div>변환 가능한 명령어가 없습니다</div>';
+  lastPlain=plain;
+  copyBtn.style.display = hasResult?'block':'none';
+  copyBtn.textContent='결과 복사하기';
+  copyBtn.className='copy-btn';
+}
+
+function copyResult() {
+  if(!lastPlain) return;
+  navigator.clipboard.writeText(lastPlain).then(()=>{
+    const btn=document.getElementById('copyBtn');
+    btn.textContent='✓ 복사 완료!';
+    btn.className='copy-btn copied';
+    setTimeout(()=>{btn.textContent='결과 복사하기';btn.className='copy-btn';},2000);
+  });
+}
+
+function switchPage(page) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+page).classList.add('active');
+  document.getElementById('nav-'+page).classList.add('active');
+}
+
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+</script>
+</body>
+</html>
